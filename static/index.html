@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NL2Cypher</title>
+
+  <style>
+    /* ---------- Design tokens (white and navy/blue theme) ---------- */
+    :root {
+      --text: #1e293b;
+      --heading: #0f172a;
+      --muted: #64748b;
+      --surface: rgba(255, 255, 255, 0.92);
+      --surface-solid: #ffffff;
+      --surface-alt: #f8fafc;
+      --border: #dbe3ee;
+      --page: #f1f5f9;
+      --accent: #1e40af;
+      --accent-2: #3b82f6;
+      --accent-soft: rgba(30, 64, 175, 0.07);
+      --accent-line: #bfdbfe;
+      --ok: #059669;
+      --ok-soft: rgba(5, 150, 105, 0.1);
+      --ok-line: #a7f3d0;
+      --bad: #dc2626;
+      --bad-soft: rgba(220, 38, 38, 0.08);
+      --bad-line: #fecaca;
+      --code-bg: #0f172a;
+      --radius: 14px;
+      --shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -8px rgba(15, 23, 42, 0.1);
+    }
+
+    /* ---------- Base ---------- */
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background: var(--page);
+      font: 15px/1.6 Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background:
+        radial-gradient(circle at 10% 8%, rgba(59, 130, 246, 0.1), transparent 42%),
+        radial-gradient(circle at 92% 92%, rgba(30, 64, 175, 0.08), transparent 42%);
+    }
+    main { max-width: 1040px; margin: 0 auto; padding: 32px 20px 64px; min-width: 0; }
+    h1 { margin: 0; font-size: clamp(1.25rem, 2.6vw, 1.6rem); font-weight: 700; letter-spacing: -0.02em; color: var(--heading); }
+    h2 { margin: 0; font-size: 1rem; font-weight: 650; color: var(--heading); }
+    .muted { color: var(--muted); font-size: 0.88rem; }
+    .eyebrow { display: block; margin-bottom: 8px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    :focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+
+    /* ---------- Panel ---------- */
+    .panel {
+      min-width: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 26px;
+      margin-bottom: 18px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .panel-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .section + .section { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--border); }
+
+    /* ---------- Header ---------- */
+    .header { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; border-top: 3px solid var(--accent); }
+    .brand { display: flex; gap: 14px; align-items: center; }
+    .logo {
+      flex: none; width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 6px 14px rgba(30, 64, 175, 0.25);
+    }
+    .pills { display: flex; flex-wrap: wrap; gap: 8px; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.78rem; font-weight: 600; padding: 5px 12px; border-radius: 99px;
+      border: 1px solid var(--border); background: var(--surface-solid); color: var(--muted);
+    }
+    .pill.ok   { color: var(--ok);     border-color: var(--ok-line);     background: var(--ok-soft); }
+    .pill.bad  { color: var(--bad);    border-color: var(--bad-line);    background: var(--bad-soft); }
+    .pill.info { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+    /* ---------- Search ---------- */
+    .search { display: flex; flex-wrap: wrap; gap: 10px; }
+    .field { position: relative; flex: 1; min-width: 240px; }
+    .field svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+    .field input {
+      width: 100%; padding: 13px 16px 13px 42px; border-radius: 10px;
+      border: 1px solid var(--border); background: var(--surface-solid);
+      color: var(--text); font: inherit; transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .field input:focus { outline: none; border-color: var(--accent-2); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15); }
+    .btn {
+      padding: 13px 26px; border: 0; border-radius: 10px; cursor: pointer;
+      font: inherit; font-weight: 600; color: #fff;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 4px 12px rgba(30, 64, 175, 0.22); transition: filter 0.15s, transform 0.15s;
+    }
+    .btn:hover { filter: brightness(1.08); }
+    .btn:active { transform: translateY(1px); }
+    .btn:disabled { opacity: 0.6; cursor: wait; }
+    .examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; align-items: center; }
+    .examples .eyebrow { margin: 0 4px 0 0; }
+    .chip {
+      cursor: pointer; font: inherit; font-size: 0.82rem; padding: 6px 13px; border-radius: 99px;
+      border: 1px solid var(--border); background: var(--surface-solid); color: var(--muted); transition: all 0.15s;
+    }
+    .chip:hover { color: var(--accent); border-color: var(--accent-2); background: var(--accent-soft); }
+    .chip.danger:hover { border-color: var(--bad); color: var(--bad); background: var(--bad-soft); }
+
+    /* ---------- Generated output ---------- */
+    .badges { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+    .block-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .block-head .eyebrow { margin: 0; }
+    .copy {
+      cursor: pointer; font: inherit; font-size: 0.78rem; font-weight: 600; padding: 4px 12px; border-radius: 99px;
+      border: 1px solid var(--border); background: var(--surface-solid); color: var(--muted); transition: all 0.15s;
+    }
+    .copy:hover { color: var(--accent); border-color: var(--accent-2); }
+    .copy.done { color: var(--ok); border-color: var(--ok-line); background: var(--ok-soft); }
+    .params { display: flex; flex-wrap: wrap; gap: 8px; }
+    .param {
+      display: inline-flex; align-items: center; border-radius: 8px; overflow: hidden;
+      border: 1px solid var(--border); background: var(--surface-solid); font: 12.5px "JetBrains Mono", ui-monospace, Consolas, monospace;
+    }
+    .param b { padding: 5px 10px; background: var(--surface-alt); color: #b45309; font-weight: 600; border-right: 1px solid var(--border); }
+    .param span { padding: 5px 10px; color: var(--heading); overflow-wrap: anywhere; }
+    .reason { padding: 14px 18px; border-radius: 10px; background: var(--accent-soft); border: 1px solid var(--accent-line); border-left: 4px solid var(--accent); }
+    .reason strong { display: block; margin-bottom: 2px; color: var(--accent); font-size: 0.9rem; }
+
+    /* ---------- Code ---------- */
+    pre {
+      margin: 0; padding: 18px 20px; border-radius: 10px; overflow-x: auto;
+      background: var(--code-bg); color: #e2e8f0;
+      font: 13px/1.75 "JetBrains Mono", "SF Mono", ui-monospace, Consolas, monospace;
+      border: 1px solid #1e293b; tab-size: 2;
+    }
+    .tok-kw    { color: #93c5fd; font-weight: 600; }
+    .tok-str   { color: #34d399; }
+    .tok-param { color: #fbbf24; }
+    .tok-label { color: #60a5fa; }
+    .tok-fn    { color: #f472b6; }
+
+    /* ---------- Results table ---------- */
+    .table-tools { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center; margin: 14px 0 12px; }
+    .table-tools input {
+      padding: 9px 14px; border-radius: 10px; min-width: 240px; border: 1px solid var(--border);
+      background: var(--surface-solid); color: var(--text); font: inherit; font-size: 0.9rem;
+    }
+    .table-tools input:focus { outline: none; border-color: var(--accent-2); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15); }
+    .table-wrap { max-width: 100%; max-height: 440px; overflow: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-solid); }
+    table { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 0.88rem; }
+    th, td { padding: 11px 16px; text-align: left; white-space: nowrap; }
+    th {
+      position: sticky; top: 0; z-index: 1; background: #eff6ff; color: var(--accent);
+      cursor: pointer; user-select: none; font-weight: 650; border-bottom: 1px solid var(--border);
+    }
+    th:hover { background: #dbeafe; }
+    td { border-top: 1px solid #eef2f7; }
+    tbody tr:nth-child(even) td { background: var(--surface-alt); }
+    tbody tr:hover td { background: #eff6ff; }
+    .null { color: var(--muted); font-style: italic; }
+    .tag { padding: 2px 10px; border-radius: 99px; font-size: 0.76rem; font-weight: 600; }
+    .tag.active   { color: var(--ok);  background: var(--ok-soft); }
+    .tag.inactive { color: var(--bad); background: var(--bad-soft); }
+
+    /* ---------- Pipeline trace (collapsible) ---------- */
+    details.panel > summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+    details.panel > summary::-webkit-details-marker { display: none; }
+    details.panel > summary::after { content: "▾"; color: var(--muted); transition: transform 0.2s; }
+    details.panel[open] > summary::after { transform: rotate(180deg); }
+    .trace { display: grid; gap: 10px; margin-top: 18px; }
+    .step { display: flex; gap: 14px; padding: 12px 16px; border-radius: 10px; background: var(--surface-solid); border: 1px solid var(--border); font-size: 0.88rem; }
+    .step-icon {
+      flex: none; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+      font-size: 0.75rem; font-weight: 800;
+    }
+    .step-icon.ok  { color: var(--ok);  background: var(--ok-soft); }
+    .step-icon.bad { color: var(--bad); background: var(--bad-soft); }
+    .step-title { font-weight: 650; color: var(--heading); }
+
+    /* ---------- Alerts, empty and loading states ---------- */
+    .alert { border-color: var(--bad-line); background: #fef2f2; border-left: 4px solid var(--bad); }
+    .alert h2 { color: var(--bad); font-size: 1.05rem; margin-bottom: 6px; }
+    .empty { text-align: center; color: var(--muted); padding: 28px; }
+    .skeleton {
+      height: 14px; border-radius: 6px; margin: 12px 0;
+      background: linear-gradient(90deg, #e2e8f0, #cbd5e1, #e2e8f0); background-size: 200% 100%;
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .skeleton { animation: shimmer 1.4s linear infinite; }
+      @keyframes shimmer { to { background-position: -200% 0; } }
+    }
+    @media (max-width: 600px) { .panel { padding: 18px; } main { padding: 20px 14px 48px; } }
+  </style>
+</head>
+
+<body>
+<main>
+
+  <!-- Header with backend status -->
+  <section class="panel header">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round">
+          <circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="8" r="2.5"/><circle cx="12" cy="18" r="2.5"/>
+          <path d="M8.2 7l7.6 .8M7 8.2l4 7.6M16.6 10l-3.4 6"/>
+        </svg>
+      </div>
+      <div>
+        <h1>POC knowledge plugin</h1>
+        <div class="muted">Ask in plain English. System writes the Cypher, a validator checks it, Neo4j runs it read-only.</div>
+      </div>
+    </div>
+    <div class="pills" id="status-pills"><span class="pill">Checking backend…</span></div>
+  </section>
+
+  <!-- Question input and examples -->
+  <section class="panel">
+    <div class="search">
+      <div class="field">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input id="question" type="text" aria-label="Your question"
+               placeholder="e.g. Give me all customer onboarding related workflows">
+      </div>
+      <button class="btn" id="run-btn" type="button">Generate and run</button>
+    </div>
+    <div class="examples"><span class="eyebrow">Try</span><span id="examples" style="display:contents"></span></div>
+  </section>
+
+  <!-- Results are rendered here -->
+  <div id="results"></div>
+
+</main>
+
+<script>
+/* =====================================================================
+   Configuration
+   ===================================================================== */
+const EXAMPLES = [
+  { text: "Give me all customer onboarding related workflows" },
+  { text: "show me all workflows" },
+  { text: "Give me incident triage workflows" },
+  { text: "Which APIs does the refund workflow call?" },
+  { text: "Delete workflow cwf_002", danger: true }
+];
+
+const CYPHER_KEYWORDS = [
+  "OPTIONAL MATCH", "MATCH", "WHERE", "RETURN", "ORDER BY", "WITH", "UNWIND", "LIMIT",
+  "AND", "OR", "NOT", "AS", "IN", "IS NOT NULL", "IS NULL", "CONTAINS", "STARTS WITH", "ENDS WITH",
+  "DISTINCT", "CASE", "WHEN", "THEN", "ELSE", "END"
+].join("|");
+
+/* =====================================================================
+   Small helpers
+   ===================================================================== */
+const $ = (id) => document.getElementById(id);
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+}
+
+/** Split text on a separator, but only at the top level (not inside (), [], {} or quotes). */
+function splitTopLevel(text, separator) {
+  const parts = [];
+  let depth = 0, quote = null, start = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (quote) { if (ch === quote) quote = null; continue; }
+    if (ch === "'" || ch === '"') { quote = ch; continue; }
+    if ("([{".includes(ch)) depth++;
+    else if (")]}".includes(ch)) depth--;
+    else if (depth === 0 && text.slice(i, i + separator.length).toUpperCase() === separator) {
+      parts.push(text.slice(start, i));
+      start = i + separator.length;
+      i = start - 1;
+    }
+  }
+  parts.push(text.slice(start));
+  return parts.map((p) => p.trim()).filter(Boolean);
+}
+
+/** Gemini returns Cypher on one line. Put each clause on its own line with tidy indentation. */
+function formatCypher(source) {
+  const clause = /(?<!\bSTARTS)(?<!\bENDS)\s+(OPTIONAL MATCH|MATCH|WHERE|WITH|UNWIND|RETURN|ORDER BY|LIMIT)\b/gi;
+  const lines = source.replace(/\s+/g, " ").trim().replace(clause, "\n$1").split("\n");
+  return lines.map((line) => {
+    if (/^WHERE /i.test(line)) {
+      const conditions = splitTopLevel(line.slice(6), " AND ");
+      return "WHERE " + conditions.map((c, i) => (i ? "  AND " : "") + c).join("\n");
+    }
+    if (/^RETURN /i.test(line)) {
+      const items = splitTopLevel(line.slice(7), ",");
+      return "RETURN " + items.join(",\n       ");
+    }
+    return line;
+  }).join("\n");
+}
+
+/** Wrap Cypher keywords, strings, $params, :Labels and functions in coloured spans. */
+function highlightCypher(source) {
+  const pattern = new RegExp(
+    "('[^']*')" +                         // 1: string literal
+    "|(\\$\\w+)" +                        // 2: parameter
+    "|\\b(" + CYPHER_KEYWORDS + ")\\b" +  // 3: keyword
+    "|(:\\w+)" +                          // 4: label or relationship type
+    "|\\b(toLower|size|collect|count|coalesce)(?=\\()",  // 5: function
+    "gi"
+  );
+  return escapeHtml(source).replace(pattern, (match, str, param, keyword, label) => {
+    if (str)     return `<span class="tok-str">${match}</span>`;
+    if (param)   return `<span class="tok-param">${match}</span>`;
+    if (keyword) return `<span class="tok-kw">${match}</span>`;
+    if (label)   return `<span class="tok-label">${match}</span>`;
+    return `<span class="tok-fn">${match}</span>`;
+  });
+}
+
+function formatCell(value) {
+  if (value === null || value === undefined) return '<span class="null">null</span>';
+  if (value === "active" || value === "inactive") return `<span class="tag ${value}">${value}</span>`;
+  if (typeof value === "object") return escapeHtml(JSON.stringify(value));
+  return escapeHtml(value);
+}
+
+/* =====================================================================
+   Renderers - each returns an HTML string
+   ===================================================================== */
+function renderLoading() {
+  return `
+    <section class="panel">
+      <div class="muted">Gemini is reading the schema and your question…</div>
+      <div class="skeleton" style="width: 80%"></div>
+      <div class="skeleton" style="width: 60%"></div>
+      <div class="skeleton" style="width: 70%"></div>
+    </section>`;
+}
+
+function renderTrace(trace) {
+  const passed = trace.filter((s) => s.ok).length;
+  const steps = trace.map((step) => `
+    <div class="step">
+      <span class="step-icon ${step.ok ? "ok" : "bad"}">${step.ok ? "✓" : "✕"}</span>
+      <div><div class="step-title">${escapeHtml(step.stage)}</div>${escapeHtml(step.detail)}</div>
+    </div>`).join("");
+  return `
+    <details class="panel">
+      <summary><div><h2>Pipeline trace</h2><div class="muted">${passed} of ${trace.length} steps passed</div></div></summary>
+      <div class="trace">${steps}</div>
+    </details>`;
+}
+
+function renderMessage(title, text, trace) {
+  return `<section class="panel"><h2>${escapeHtml(title)}</h2><div class="muted" style="margin-top:6px">${escapeHtml(text)}</div></section>${renderTrace(trace)}`;
+}
+
+function renderBlocked(data) {
+  return `
+    <section class="panel alert" role="alert">
+      <h2>Security Violation: Write Clause Blocked</h2>
+      <div>${escapeHtml(data.layer)}. ${escapeHtml(data.detail)}</div>
+      <div class="muted" style="margin-top:8px">Nothing was sent to the database. This tool only runs read-only queries.</div>
+    </section>${renderTrace(data.trace)}`;
+}
+
+function renderParams(params) {
+  const entries = Object.entries(params || {});
+  if (!entries.length) return '<div class="muted">No parameters. This query uses no user-supplied values.</div>';
+  return `<div class="params">${entries.map(([name, value]) =>
+    `<div class="param"><b>$${escapeHtml(name)}</b><span>${escapeHtml(value)}</span></div>`).join("")}</div>`;
+}
+
+function renderSuccess(data) {
+  const live = data.mode === "live";
+  const badges = `
+    <div class="badges">
+      <span class="pill ok"><span class="dot"></span>Validated read-only</span>
+      <span class="pill info">${live ? "Executed in " + data.ms + "ms" : "Dry-run: not executed"}</span>
+      ${live ? `<span class="pill info">${data.rows.length} ${data.rows.length === 1 ? "row" : "rows"}</span>` : ""}
+    </div>`;
+
+  const queryPanel = `
+    <section class="panel">
+      ${badges}
+      <div class="section">
+        <div class="block-head"><span class="eyebrow">Generated Cypher</span><button class="copy" data-copy="cypher" type="button">Copy</button></div>
+        <pre>${highlightCypher(formatCypher(data.cypher))}</pre>
+      </div>
+      <div class="section">
+        <span class="eyebrow">Parameters</span>
+        ${renderParams(data.params)}
+      </div>
+      <div class="section">
+        <div class="reason"><strong>tl;dr</strong>${escapeHtml(data.reasoning)}</div>
+      </div>
+    </section>`;
+
+  const resultsPanel = live ? `<section class="panel" id="results-panel"><h2>Results</h2></section>` : "";
+  return queryPanel + resultsPanel + renderTrace(data.trace);
+}
+
+/* =====================================================================
+   Sortable, filterable results table
+   ===================================================================== */
+function buildTable(columns, rows) {
+  const state = { sortColumn: null, direction: 1, filter: "" };
+  const container = document.createElement("div");
+  container.innerHTML = `
+    <div class="table-tools">
+      <input type="search" placeholder="Filter rows" aria-label="Filter rows">
+      <span class="muted" data-count></span>
+    </div>
+    <div class="table-wrap" data-table></div>`;
+
+  const tableBox = container.querySelector("[data-table]");
+  const countLabel = container.querySelector("[data-count]");
+
+  function visibleRows() {
+    let list = rows.filter((row) =>
+      JSON.stringify(Object.values(row)).toLowerCase().includes(state.filter));
+    if (state.sortColumn) {
+      list = [...list].sort((a, b) =>
+        String(a[state.sortColumn] ?? "").localeCompare(
+          String(b[state.sortColumn] ?? ""), undefined, { numeric: true }) * state.direction);
+    }
+    return list;
+  }
+
+  function draw() {
+    const list = visibleRows();
+    const arrow = (col) => state.sortColumn === col ? (state.direction > 0 ? " ▲" : " ▼") : "";
+    tableBox.innerHTML = `
+      <table>
+        <thead><tr>${columns.map((c) => `<th data-col="${escapeHtml(c)}">${escapeHtml(c)}${arrow(c)}</th>`).join("")}</tr></thead>
+        <tbody>${list.map((row) => `<tr>${columns.map((c) => `<td>${formatCell(row[c])}</td>`).join("")}</tr>`).join("")}</tbody>
+      </table>`;
+    countLabel.textContent = `${list.length} of ${rows.length} rows`;
+    tableBox.querySelectorAll("th").forEach((th) => th.addEventListener("click", () => {
+      const col = th.dataset.col;
+      state.direction = state.sortColumn === col ? -state.direction : 1;
+      state.sortColumn = col;
+      draw();
+    }));
+  }
+
+  container.querySelector("input").addEventListener("input", (e) => {
+    state.filter = e.target.value.toLowerCase();
+    draw();
+  });
+  draw();
+  return container;
+}
+
+/* =====================================================================
+   Main flow
+   ===================================================================== */
+async function ask() {
+  const question = $("question").value.trim();
+  if (!question) return;
+
+  const out = $("results");
+  const button = $("run-btn");
+  button.disabled = true;
+  out.innerHTML = renderLoading();
+
+  let data;
+  try {
+    const response = await fetch("/api/query", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question })
+    });
+    data = await response.json();
+    if (!response.ok) throw new Error(data.detail || "Request failed");
+  } catch (error) {
+    out.innerHTML = `<section class="panel alert"><h2>Request failed</h2>${escapeHtml(error.message)}</section>`;
+    button.disabled = false;
+    return;
+  }
+  button.disabled = false;
+
+  if (data.status === "blocked") { out.innerHTML = renderBlocked(data); return; }
+  if (data.status === "unsupported") { out.innerHTML = renderMessage("Not answerable from this graph", data.reasoning, data.trace); return; }
+  if (data.status !== "ok") { out.innerHTML = renderMessage("No valid query", data.reasoning, data.trace); return; }
+
+  out.innerHTML = renderSuccess(data);
+
+  // Copy button copies the formatted Cypher
+  out.querySelector("[data-copy]").addEventListener("click", (e) => {
+    navigator.clipboard.writeText(formatCypher(data.cypher));
+    e.target.textContent = "Copied";
+    e.target.classList.add("done");
+    setTimeout(() => { e.target.textContent = "Copy"; e.target.classList.remove("done"); }, 1500);
+  });
+
+  // Results table (live mode only)
+  if (data.mode === "live") {
+    const panel = $("results-panel");
+    if (data.rows.length) panel.appendChild(buildTable(data.columns, data.rows));
+    else panel.insertAdjacentHTML("beforeend", '<div class="empty">0 rows matched this question.</div>');
+  }
+}
+
+/* =====================================================================
+   Start-up
+   ===================================================================== */
+EXAMPLES.forEach((example) => {
+  const chip = document.createElement("button");
+  chip.type = "button";
+  chip.className = "chip" + (example.danger ? " danger" : "");
+  chip.textContent = example.text;
+  chip.addEventListener("click", () => { $("question").value = example.text; ask(); });
+  $("examples").appendChild(chip);
+});
+
+$("run-btn").addEventListener("click", ask);
+$("question").addEventListener("keydown", (e) => { if (e.key === "Enter") ask(); });
+
+fetch("/api/health")
+  .then((r) => r.json())
+  .then((h) => {
+    $("status-pills").innerHTML = `
+      <span class="pill ${h.neo4j ? "ok" : ""}"><span class="dot"></span>${h.neo4j ? "Neo4j live" : "Dry-run (no Neo4j)"}</span>`;
+  })
+  .catch(() => { $("status-pills").innerHTML = '<span class="pill bad">Backend unreachable</span>'; });
+</script>
+</body>
+</html>
