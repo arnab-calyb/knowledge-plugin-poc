@@ -1,9 +1,10 @@
 import os, re, time
+import sys, pathlib
+sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv()
 from fastapi import FastAPI, HTTPException
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import db, guard, llm
 from schema import LABELS, RELS, RULES
@@ -78,4 +79,4 @@ def query(body: Ask):
             feedback = f"Previous cypher: {cypher}\nNeo4j error: {str(e)[:300]}"
     return {"status": "failed", "reasoning": "Could not produce a valid query after 3 attempts.", "trace": trace}
 
-app.mount("/", StaticFiles(directory=Path(__file__).parent.parent / "static", html=True), name="static")
+# app.mount("/", StaticFiles(directory=Path(__file__).parent.parent / "static", html=True), name="static")
